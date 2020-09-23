@@ -1,0 +1,55 @@
+import matplotlib.pyplot as plt
+from random import randint
+import matplotlib.image as mpimg
+
+bit = 256
+
+def fun(x, y, img):
+    if y >= 1 and y < len(img[x]) - 1:
+        return -2 * img[x][y] + img[x][y - 1] + img[x][y + 1]
+    return img[x][y]
+
+def randomImg(n, m):
+    img = []
+    for i in range(n):
+        img.append([])
+        for j in range(m):
+            img[i].append(randint(0, bit - 1))
+    return img
+
+def histogram(img):
+    xx = [i for i in range(bit)]
+    yy = [0 for i in range(bit)]
+    for row in img:
+        for col in row:
+            yy[col] += 1
+    #print (yy)
+    plt.bar(xx, yy)
+    plt.show()
+
+def transform(img):
+    trans = []
+    for i in range(len(img)):
+        trans.append([])
+        for j in range(len(img[i])):
+            trans[i].append(fun(i, j, img))
+    return trans
+
+img = mpimg.imread('galaxy.tif')
+histogram(img)
+print (len(img), len(img[0]))
+#imgplot = plt.imshow(img, cmap='gray', vmin=0, vmax=255)
+#grey = []
+#for i in range(len(img)):
+#    grey.append([])
+#    for j in range(len(img[i])):
+#        grey[i].append(sum(img[i][j]) / len(img[i][j]))
+#
+#greyplot = plt.imshow(grey)
+#randimg = randomImg(512, 512)
+#plt.imshow(randimg, cmap='gray')
+#histogram(img)
+#new_img = transform(img)
+#plt.imshow(new_img, cmap='gray', vmin=0, vmax=255)
+#histogram(new_img)
+plt.show()

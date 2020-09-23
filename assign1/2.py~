@@ -1,0 +1,50 @@
+import cv2
+import numpy as np
+
+THRESHOLD = 8
+MAX = np.uint8(255)
+
+class MotionSeg:
+    def __init__(self, path):
+        self.cam = cv2.VideoCapture(path)
+        self.prevFrame = []
+        self.frame = []
+        self.background = []
+
+    def segmentation(self, curFrame):
+        
+        if len(self.prevFrame) == 0:
+            self.prevFrame = curFrame
+            self.background = curFrame
+            return False
+        
+        self.frame = []
+        for row in range(len(curFrame)):
+            self.frame.append([])
+            #self.background.append([])
+            for col in range(len(curFrame[row])):
+                if (abs(int(curFrame[row][col]) - int(self.prevFrame[row][col])) <= THRESHOLD):
+                    self.frame[row].append(MAX)
+                    #self
+                else:
+                    self.frame[row].append(self.prevFrame[row][col])
+        self.prevFrame = curFrame
+        self.frame = np.array(self.frame)
+        return True
+
+    def videoSeg(self):
+        success = True
+        while success:
+            success, frame = self.cam.read()
+            grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+           # print type(grayFrame)
+            if self.segmentation(grayFrame):
+                #print self.frame.shape
+                cv2.imshow('Video', self.frame)
+            #print len(grayFrame), len(grayFrame[0])
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+if __name__ == "__main__":
+    imageSeg = MotionSeg(0)
+    imageSeg.videoSeg()

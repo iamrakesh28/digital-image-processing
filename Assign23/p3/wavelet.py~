@@ -1,0 +1,6 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pywt
+
+if __name__ "__main__":
+    print(pywt.avelist('db'))

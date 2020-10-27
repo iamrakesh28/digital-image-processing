@@ -1,0 +1,135 @@
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+
+def plot(img, filt_img):
+    # rows -> 1, cols -> 2, index -> 1
+    plt.subplot(121), plt.imshow(img, cmap='gray'), plt.title('Original')
+    plt.xticks([]), plt.yticks([])
+    plt.subplot(122), plt.imshow(filt_img, cmap='gray'), plt.title('Edges')
+    plt.xticks([]), plt.yticks([])
+
+    plt.show()
+
+def smooth(img):
+    #kernel = np.ones((3, 3), np.float32) / 9
+    img = cv2.blur(img, (3, 3))
+    return img
+
+# four directions along diagonals
+def sobel(img):
+    # sobel -> diagonal 1
+    kernel = np.zeros((3, 3))
+    kernel[0][0] = 2
+    kernel[0][1] = 1
+    kernel[1][0] = 1
+
+    kernel[2][2] = -2
+    kernel[1][2] = -1
+    kernel[2][1] = -1
+
+    filt_img1 = cv2.filter2D(img, -1, kernel)
+    #plot(img, abs(filt_img1))
+
+    # sobel -> diagonal 2
+    kernel = np.zeros((3, 3))
+    kernel[0][2] = 2
+    kernel[0][1] = 1
+    kernel[1][2] = 1
+
+    kernel[2][0] = -2
+    kernel[2][1] = -1
+    kernel[1][0] = -1
+    
+    filt_img2 = cv2.filter2D(img, -1, kernel)
+    #plot(img, abs(filt_img2))
+
+    # sobel -> diagonal -1
+    kernel = np.zeros((3, 3))
+    kernel[0][0] = -2
+    kernel[0][1] = -1
+    kernel[1][0] = -1
+
+    kernel[2][2] = 2
+    kernel[1][2] = 1
+    kernel[2][1] = 1
+
+    filt_img3 = cv2.filter2D(img, -1, kernel)
+    #plot(img, abs(filt_img1))
+
+    # sobel -> diagonal -2
+    kernel = np.zeros((3, 3))
+    kernel[0][2] = -2
+    kernel[0][1] = -1
+    kernel[1][2] = -1
+
+    kernel[2][0] = 2
+    kernel[2][1] = 1
+    kernel[1][0] = 1
+    
+    filt_img4 = cv2.filter2D(img, -1, kernel)
+
+    # image max
+    filt_img = np.zeros(filt_img1.shape)
+    for i in range(filt_img.shape[0]):
+        for j in range(filt_img.shape[1]):
+            filt_img[i][j] = max(filt_img1[i][j], filt_img2[i][j],
+                                 filt_img3[i][j], filt_img4[i][j])
+    return filt_img
+
+
+# filter size -> 3 x 3
+def rotate(filt):
+    rot_filt = np.zeros((3, 3))
+    # row 0
+    rot_filt[0][0] = filt[0][1]
+    rot_filt[0][1] = filt[0][2]
+    rot_filt[0][2] = filt[1][2]
+
+    #
+    rot_filt[1][2] = filt[2][2]
+    rot_filt[2][2] = filt[2][1]
+    rot_filt[2][1] = filt[2][0]
+
+    #
+    rot_filt[2][0] = filt[1][0]
+    rot_filt[1][0] = filt[0][0]
+    
+    return rot_filt
+
+# don't make size large otherwise features will be lost
+def main():
+    #img = cv2.imread('../image_1.JPG')
+    img = cv2.imread('../Blocks.jpg')
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #print(img.shape)
+
+    img = cv2.medianBlur(img, 3)
+    #img = smooth(img)
+
+    # laplacian
+    kernel = np.ones((3, 3), np.float32)
+    kernel[1][1] = -8
+    filt_img = cv2.filter2D(img, -1, kernel)
+    plot(img, abs(filt_img))
+
+    # kirsh kernel
+    '''
+    kirsh_kernel = np.array([[5, 5, 5], [-3, -0, -3], [-3, -3, -3]], dtype=np.float32)
+
+    for rot in range(2):
+        filt = cv2.filter2D(img, -1, kirsh_kernel)
+        if len(filt_img) == 0:
+            filt_img = filt
+        else:
+            filt_img = filt_img + filt
+        kirsh_kernel = rotate(kirsh_kernel)
+    
+    '''
+    filt_img = sobel(img)
+    plot(img, abs(filt_img))
+    plt.imsave('Blocks_sobel_med.jpg', abs(filt_img), cmap='gray')
+
+    
+if __name__ == "__main__":
+    main()

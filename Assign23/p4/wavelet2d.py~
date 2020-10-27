@@ -1,0 +1,149 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pywt
+import cv2
+
+def reconst_row(cA, cD, wavelet):
+    n_rows = min(cA.shape[0], cD.shape[0])
+
+    img_rec = []
+
+    for row in range(n_rows):
+        min_len = min(cA[row].shape[0], cD[row].shape[0])
+        img_row = pywt.idwt(cA[row][:min_len], cD[row][:min_len], wavelet)
+        img_rec.append(img_row)
+
+    return np.array(img_rec)
+
+
+def reconst_col(cA, cD, wavelet):
+    cA = cA.T
+    cD = cD.T
+    n_rows = min(cA.shape[0], cD.shape[0])
+
+    img_rec = []
+
+    for row in range(n_rows):
+        min_len = min(cA[row].shape[0], cD[row].shape[0])
+        img_row = pywt.idwt(cA[row][:min_len], cD[row][:min_len], wavelet)
+        img_rec.append(img_row)
+
+    cA = cA.T
+    cD = cD.T
+    
+    return np.array(img_rec).T
+
+# y2d -> [cA, (cDn, C...), (..)]
+
+def iwt2d(y2d, wavelet, nlevels):
+
+    cA_i = y2d[0]
+    cD_hor = y2d[1][0]
+    cD_ver = y2d[1][1]
+    cD_diag = y2d[1][2]
+
+    img_low = reconst_col(cA_i, cD_hor, wavelet)
+    img_high = reconst_col(cD_ver, cD_diag, wavelet)
+
+    cA = reconst_row(img_low, img_high, wavelet)
+
+    if nlevels > 1:
+        return iwt2d([cA] + y2d[2:], wavelet, nlevels - 1)
+    else:
+        return cA
+
+def decompose_row(x2d, wavelet):
+    n_rows = x2d.shape[0]
+
+    c_low = []
+    c_high = []
+    for row in range(n_rows):
+        cA, cD = pywt.dwt(x2d[row], wavelet)
+        c_low.append(cA)
+        c_high.append(cD)
+
+    c_low = np.array(c_low)
+    c_high = np.array(c_high)
+
+    return (c_low, c_high)
+
+def decompose_col(x2d, wavelet):
+
+    x2d = x2d.T
+    n_rows = x2d.shape[0]
+
+    c_low = []
+    c_high = []
+    for row in range(n_rows):
+        cA, cD = pywt.dwt(x2d[row], wavelet)
+        c_low.append(cA)
+        c_high.append(cD)
+
+    x2d = x2d.T
+    c_low = np.array(c_low)
+    c_high = np.array(c_high)
+
+    return (c_low.T, c_high.T)
+    
+# wavelet object will have all the filters
+def wt2d(x2d, wavelet, nlevels):
+    
+    n_rows = x2d.shape[0]
+    n_cols = x2d.shape[1]
+
+    cA, cD = decompose_row(x2d, wavelet)
+    cA, cD_hor = decompose_col(cA, wavelet)
+    cD_ver, cD_diag = decompose_col(cD, wavelet)
+
+    final = []
+
+    if nlevels > 1:
+        final = wt2d(cA, wavelet, nlevels - 1)
+        final.append((cD_hor, cD_ver, cD_diag))
+    else:
+        final = [cA, (cD_hor, cD_ver, cD_diag)]
+
+    return final
+    
+if __name__ == "__main__":
+    #print(pywt.wavelist('db'))
+
+    '''
+    #print(db4.dec_hi)
+
+    # dec low
+    plt.subplot(221), plt.plot(db4.dec_lo), plt.title('Decomposition Low')
+    plt.subplot(222), plt.plot(db4.dec_hi), plt.title('Decomposition High')
+    plt.subplot(223), plt.plot(db4.rec_lo), plt.title('Reconstruction Low')
+    plt.subplot(224), plt.plot(db4.rec_hi), plt.title('Reconstruction High')
+        
+    plt.show()
+    '''
+
+    img = cv2.imread('../barbara.png', 0)
+    #plt.imshow(img, cmap='gray')
+    #plt.show()
+    #print(img.shape)
+
+    # db4 filters
+    db4 = pywt.Wavelet('db4')
+
+    
+    #coeff1 = pywt.wavedec2(img, 'db4', level=2)
+    coeff2 = wt2d(img, db4, 2)
+    
+    #print(len(coeff[1]))
+    #img1 = pywt.waverec2(coeff2, db4)
+    img1 = iwt2d(coeff2, db4, 2)
+
+    plt.subplot(121), plt.imshow(img, cmap='gray'), plt.title('Original')
+    plt.subplot(122), plt.imshow(img1, cmap='gray'), plt.title('Coefficient')
+    plt.show()
+    
+
+    
+    #db4 = pywt.Wavelet('db4')
+    #cA, cD = pywt.dwt([1, 2, 3, 4], 'db4')
+    #print(pywt.idwt(cA, cD, 'db4'))
+    #print(img.shape, cA.shape, cD.shape)
+    #print(type(cA), cD)
